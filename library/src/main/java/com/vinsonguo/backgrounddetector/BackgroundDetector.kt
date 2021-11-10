@@ -15,7 +15,7 @@ import android.os.Bundle
  */
 typealias BackgroundDetectListener = (isBackground: Boolean) -> Unit
 
-class BackgroundDetector : Application.ActivityLifecycleCallbacks, BroadcastReceiver() {
+private class BackgroundDetector : Application.ActivityLifecycleCallbacks, BroadcastReceiver() {
 
     private val listeners = mutableListOf<BackgroundDetectListener>()
 
@@ -97,26 +97,22 @@ class BackgroundDetector : Application.ActivityLifecycleCallbacks, BroadcastRece
     fun listenerSize() = listeners.size
 }
 
-private var detector: BackgroundDetector? = null
+private lateinit var detector: BackgroundDetector
 
-fun Application.addBackgroundDetectListener(listener: BackgroundDetectListener): Boolean {
-    if (detector == null) {
-        val _detector = BackgroundDetector()
-        registerActivityLifecycleCallbacks(_detector)
-        registerReceiver(_detector, IntentFilter().apply {
+fun Application.initBackgroundDetector() {
+    detector = BackgroundDetector().also {
+        registerActivityLifecycleCallbacks(it)
+        registerReceiver(it, IntentFilter().apply {
             addAction(ACTION_SCREEN_ON)
             addAction(ACTION_SCREEN_OFF)
         })
-        detector = _detector
     }
-    return detector?.addListener(listener) ?: false
+}
+
+fun Application.addBackgroundDetectListener(listener: BackgroundDetectListener): Boolean {
+    return detector.addListener(listener)
 }
 
 fun Application.removeBackgroundDetectListener(listener: BackgroundDetectListener): Boolean {
-    val result = detector?.removeListener(listener) ?: false
-    if (detector != null && detector!!.listenerSize() == 0) {
-        unregisterReceiver(detector)
-        detector = null
-    }
-    return result
+    return detector.removeListener(listener)
 }
